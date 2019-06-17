@@ -93,6 +93,23 @@
 #### <a name='patterns'>设计模式相关问题:</a> [[↑]](#toc)
 
 * 请用一个例子表明，全局对象是邪恶的存在。
+ Mutable global state is evil for many reasons:
+
+Bugs from mutable global state - a lot of tricky bugs are caused by mutability. Bugs that can be caused by mutation from anywhere in the program are even tricker, as it's often hard to track down the exact cause
+Poor testability - if you have mutable global state, you will need to configure it for any tests that you write. This makes testing harder (and people being people are therefore less likely to do it!). e.g. in the case of application-wide database credentials, what if one test needs to access a specific test database different from everything else?
+Inflexibility - what if one part of the code requires one value in the global state, but another part requires another value (e.g. a temporary value during a transaction)? You suddenly have a nasty bit of refactoring on your hands
+Function impurity - "pure" functions (i.e. ones where the result depends only on the input parameters and have no side effects) are much easier to reason about and compose to build larger programs. Functions that read or manipulate mutable global state are inherently impure.
+Code comprehension - code behaviour that depends on a lot of mutable global variables is much trickier to understand - you need to understand the range of possible interactions with the global variable before you can reason about the behaviour of the code. In some situations, this problem can become intractable.
+Concurrency issues - mutable global state typically requires some form of locking when used in a concurrent situation. This is very hard to get right (is a cause of bugs) and adds considerably more complexity to your code (hard/expensive to maintain).
+Performance - multiple threads continually bashing on the same global state causes cache contention and will slow down your system overall.
+Alternatives to mutable global state:
+
+Function parameters - often overlooked, but parameterising your functions better is often the best way to avoid global state. It forces you to solve the important conceptual question: what information does this function require to do its job? Sometimes it makes sense to have a data structure called "Context" that can be passed down a chain of functions that wraps up all relevant information.
+Dependency injection - same as for function parameters, just done a bit earlier (at object construction rather than function invocation). Be careful if your dependencies are mutable objects though, this can quickly cause the same problems as mutable global state.....
+Immutable global state is mostly harmless - it is effectively a constant. But make sure that it really is a constant, and that you aren't going to be tempted to turn it into mutable global state at a later point!
+Immutable singletons - pretty much the same as immutable global state, except that you can defer instantiation until they are needed. Useful for e.g. large fixed data structures that need expensive one-off pre-calculation. Mutable singletons are of course equivalent to mutable global state and are therefore evil :-)
+Dynamic binding - only available in some langauges like Common Lisp/Clojure, but this effectively lets you bind a value within a controlled scope (typically on a thread-local basis) which does not affect other threads. To some extent this is a "safe" way of getting the same effect as a global variable, since you know that only the current thread of execution will be affected. This is particularly useful in the case where you have multiple threads each handling independent transactions, for example.
+
 * 假设你工作的系统不支持事务性，你会如何从头开始实现它？
 * 什么是好莱坞原则（Hollywood Principles）？
 * 关于迪米特法则(最少知识原则): 写一段代码违反它, 然后修复它。
@@ -106,6 +123,7 @@
 * 你可以写一个线程安全的单例(Singleton)类吗？
 * 数据抽象(Data Abstraction)能力是指能改变实现而不影响客户端的这种能力。请构造一个一个例子，违反这个特性，并且尝试修复它。
 * 你是如何处理依赖关系地狱(Dependency Hell)的？
+  - https://en.wikipedia.org/wiki/Dependency_hell
 * 为什么说goto语句是恶魔般的存在？
 * 健壮性是进行软件设计时的一个通用原则，它建议 *“发送时要保守，接收时要开放”*。这也经常被写成，“做一个有耐心的读者，做一个谨慎的作者”。你能解释一些这背后的逻辑吗？
 
